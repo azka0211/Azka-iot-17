@@ -8,6 +8,8 @@ interface WebDashboardSimProps {
   onSetAllRelays: (state: boolean) => void;
   onToggleVariasi: (varNum: number, state: boolean) => void;
   onRefresh: () => void;
+  isDhtReading?: boolean;
+  dhtLogs?: Array<{ time: string; temp: number; hum: number; status: string }>;
 }
 
 export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
@@ -16,6 +18,8 @@ export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
   onSetAllRelays,
   onToggleVariasi,
   onRefresh,
+  isDhtReading,
+  dhtLogs,
 }) => {
   return (
     <div className="bg-white border-2 border-slate-900 rounded-none flex flex-col h-full overflow-hidden shadow-[6px_6px_0px_rgba(15,23,42,1)] relative" id="web-dashboard-simulator">
@@ -65,20 +69,54 @@ export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
 
         {/* Sensor Section */}
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-black mb-3">Sensor Readings (DHT11)</p>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-black">Sensor Readings (DHT11)</p>
+            {isDhtReading && (
+              <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-600 font-black animate-pulse bg-emerald-50 border-2 border-emerald-500 px-2.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                DITELUSURI (READING...)
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white border-2 border-slate-900 rounded-none p-4 shadow-[4px_4px_0px_rgba(15,23,42,1)]">
               <div className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold mb-1">🌡️ Temperatur</div>
               <div className="text-3xl font-black text-slate-900 font-mono">{state.temperature.toFixed(1)}°C</div>
-              <div className="text-[9px] text-slate-400 mt-1 font-mono">GPIO4 pin data bus</div>
+              <div className="text-[9px] text-slate-400 mt-1 font-mono flex justify-between">
+                <span>GPIO4 pin data bus</span>
+                {isDhtReading && <span className="text-emerald-600 animate-pulse">● Live Read</span>}
+              </div>
             </div>
 
             <div className="bg-white border-2 border-slate-900 rounded-none p-4 shadow-[4px_4px_0px_rgba(15,23,42,1)]">
               <div className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold mb-1">💧 Kelembaban</div>
               <div className="text-3xl font-black text-slate-900 font-mono">{state.humidity.toFixed(1)}%</div>
-              <div className="text-[9px] text-slate-400 mt-1 font-mono">relative humidity</div>
+              <div className="text-[9px] text-slate-400 mt-1 font-mono flex justify-between">
+                <span>relative humidity</span>
+                {isDhtReading && <span className="text-emerald-600 animate-pulse">● Live Read</span>}
+              </div>
             </div>
           </div>
+
+          {/* Real-time Logger Stream */}
+          {dhtLogs && dhtLogs.length > 0 && (
+            <div className="mt-4 bg-slate-900 text-slate-200 p-4 border-2 border-slate-900 font-mono text-[11px] space-y-2 rounded-none shadow-[4px_4px_0px_rgba(15,23,42,1)]">
+              <div className="text-emerald-400 font-black border-b border-slate-800 pb-1.5 flex justify-between uppercase text-[10px] tracking-wider">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  REAL-TIME DHT11 LOGGER (ESP32)
+                </span>
+                <span className="animate-pulse">● LIVE STREAMING</span>
+              </div>
+              <div className="max-h-[100px] overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                {dhtLogs.slice().reverse().map((log, index) => (
+                  <div key={index} className="flex justify-between hover:bg-slate-800 px-1.5 py-0.5 transition-colors border-l-2 border-emerald-500 pl-2">
+                    <span className="text-slate-300">[{log.time}] <span className="text-amber-300 font-bold">DHT11:</span> {log.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Relay Section */}
@@ -91,20 +129,25 @@ export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
               { num: 3, name: 'Lampu 3', state: state.relay3 },
               { num: 4, name: 'Lampu 4', state: state.relay4 }
             ].map((relay) => (
-              <div key={relay.num} className="bg-white border-2 border-slate-900 rounded-none p-4 flex flex-col items-center gap-3 shadow-[3px_3px_0px_rgba(15,23,42,1)]">
-                <span className="text-[10px] text-slate-900 font-black uppercase tracking-wider">{relay.name}</span>
+              <div 
+                key={relay.num} 
+                className={`bg-white border-2 border-slate-900 rounded-none p-4 flex flex-col items-center gap-3 shadow-[3px_3px_0px_rgba(15,23,42,1)] transition-all duration-200 cursor-pointer select-none group hover:border-amber-400 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_rgba(15,23,42,1)]`}
+                onClick={() => onToggleRelay(relay.num, !relay.state)}
+                title={`Klik untuk men-toggle ${relay.name}`}
+              >
+                <span className="text-[10px] text-slate-900 font-black uppercase tracking-wider group-hover:text-amber-500 transition-colors">{relay.name}</span>
                 
                 {/* Visual Indicator ball */}
                 <div 
                   className={`w-12 h-12 rounded-none border-2 border-slate-900 flex items-center justify-center text-xl transition-all duration-300 ${
-                    relay.state ? 'bg-amber-400 shadow-[2px_2px_0px_rgba(15,23,42,1)]' : 'bg-slate-100'
+                    relay.state ? 'bg-amber-400 shadow-[2px_2px_0px_rgba(15,23,42,1)]' : 'bg-slate-100 group-hover:bg-slate-50'
                   }`}
                 >
                   {relay.state ? '💡' : '🌑'}
                 </div>
 
                 <div className="text-xs font-black tracking-wider">
-                  <span className={relay.state ? 'text-emerald-700 bg-emerald-50 px-1 border border-emerald-500' : 'text-slate-400'}>
+                  <span className={relay.state ? 'text-emerald-700 bg-emerald-50 px-1 border border-emerald-500 font-mono' : 'text-slate-400 font-mono'}>
                     {relay.state ? 'STATUS: ACTIVE' : 'STATUS: INACTIVE'}
                   </span>
                 </div>
@@ -112,14 +155,24 @@ export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
                 {/* ON / OFF Actions */}
                 <div className="flex gap-2 w-full mt-1">
                   <button 
-                    onClick={() => onToggleRelay(relay.num, true)}
-                    className="flex-grow bg-emerald-400 hover:bg-emerald-300 text-slate-900 py-1 border-2 border-slate-900 text-xs font-black transition-all cursor-pointer shadow-[2px_2px_0px_rgba(15,23,42,1)] uppercase active:shadow-none active:translate-y-[2px]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleRelay(relay.num, true);
+                    }}
+                    className={`flex-grow py-1 border-2 border-slate-900 text-xs font-black transition-all cursor-pointer shadow-[2px_2px_0px_rgba(15,23,42,1)] uppercase active:shadow-none active:translate-y-[2px] ${
+                      relay.state ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-900' : 'bg-slate-100 hover:bg-emerald-50 text-slate-600'
+                    }`}
                   >
                     ON
                   </button>
                   <button 
-                    onClick={() => onToggleRelay(relay.num, false)}
-                    className="flex-grow bg-rose-400 hover:bg-rose-300 text-slate-900 py-1 border-2 border-slate-900 text-xs font-black transition-all cursor-pointer shadow-[2px_2px_0px_rgba(15,23,42,1)] uppercase active:shadow-none active:translate-y-[2px]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleRelay(relay.num, false);
+                    }}
+                    className={`flex-grow py-1 border-2 border-slate-900 text-xs font-black transition-all cursor-pointer shadow-[2px_2px_0px_rgba(15,23,42,1)] uppercase active:shadow-none active:translate-y-[2px] ${
+                      !relay.state ? 'bg-rose-400 hover:bg-rose-300 text-slate-900' : 'bg-slate-100 hover:bg-rose-50 text-slate-600'
+                    }`}
                   >
                     OFF
                   </button>

@@ -6,9 +6,10 @@ import { IoTState } from '../types';
 interface HardwareSimulatorProps {
   state: IoTState;
   onToggleRelay: (relayNum: number) => void;
+  isDhtReading?: boolean;
 }
 
-export const HardwareSimulator: React.FC<HardwareSimulatorProps> = ({ state, onToggleRelay }) => {
+export const HardwareSimulator: React.FC<HardwareSimulatorProps> = ({ state, onToggleRelay, isDhtReading }) => {
   const [pulse, setPulse] = useState(false);
 
   // Sparkle/heartbeat pulse effect for the ESP32 active state
@@ -165,9 +166,9 @@ export const HardwareSimulator: React.FC<HardwareSimulatorProps> = ({ state, onT
 
               <div className="text-[8px] font-mono text-slate-600 flex justify-between items-center">
                 <span>Pin: GPIO4 / D4</span>
-                <span className="text-emerald-700 flex items-center gap-1 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
-                  Monitoring
+                <span className={`${isDhtReading ? 'text-emerald-500 animate-pulse font-black' : 'text-emerald-700 font-bold'} flex items-center gap-1`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isDhtReading ? 'bg-emerald-500 animate-ping' : 'bg-emerald-600'}`} />
+                  {isDhtReading ? 'DHT11 READING...' : 'Monitoring Active'}
                 </span>
               </div>
             </div>

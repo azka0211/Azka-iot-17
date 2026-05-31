@@ -6,9 +6,21 @@ interface HardwareControlsProps {
   state: IoTState;
   onStateChange: (newState: Partial<IoTState>) => void;
   onReset: () => void;
+  sliderTemp: number;
+  sliderHum: number;
+  setSliderTemp: (t: number) => void;
+  setSliderHum: (h: number) => void;
 }
 
-export const HardwareControls: React.FC<HardwareControlsProps> = ({ state, onStateChange, onReset }) => {
+export const HardwareControls: React.FC<HardwareControlsProps> = ({ 
+  state, 
+  onStateChange, 
+  onReset,
+  sliderTemp,
+  sliderHum,
+  setSliderTemp,
+  setSliderHum
+}) => {
   return (
     <div className="bg-white border-2 border-slate-900 rounded-none p-6 shadow-[6px_6px_0px_rgba(15,23,42,1)] relative" id="hardware-simulator-controls">
       <div className="flex items-center justify-between border-b-2 border-slate-900 pb-3 mb-5">
@@ -47,9 +59,13 @@ export const HardwareControls: React.FC<HardwareControlsProps> = ({ state, onSta
             min="-10"
             max="60"
             step="0.5"
-            value={state.temperature}
-            onChange={(e) => onStateChange({ temperature: parseFloat(e.target.value) })}
-            className="w-full h-2 bg-slate-205 border border-slate-900 rounded-none appearance-none cursor-pointer accent-slate-900"
+            value={sliderTemp}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              setSliderTemp(val);
+              onStateChange({ temperature: val });
+            }}
+            className="w-full h-2 bg-slate-200 border border-slate-900 rounded-none appearance-none cursor-pointer accent-slate-900 shadow-[1px_1px_0px_rgba(15,23,42,1)]"
           />
           <div className="flex justify-between text-[9px] text-slate-500 font-mono">
             <span>Dingin (-10°C)</span>
@@ -73,9 +89,13 @@ export const HardwareControls: React.FC<HardwareControlsProps> = ({ state, onSta
             min="10"
             max="100"
             step="1"
-            value={state.humidity}
-            onChange={(e) => onStateChange({ humidity: parseFloat(e.target.value) })}
-            className="w-full h-2 bg-slate-205 border border-slate-900 rounded-none appearance-none cursor-pointer accent-slate-900"
+            value={sliderHum}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              setSliderHum(val);
+              onStateChange({ humidity: val });
+            }}
+            className="w-full h-2 bg-slate-200 border border-slate-900 rounded-none appearance-none cursor-pointer accent-slate-900 shadow-[1px_1px_0px_rgba(15,23,42,1)]"
           />
           <div className="flex justify-between text-[9px] text-slate-500 font-mono">
             <span>Kering (10%)</span>

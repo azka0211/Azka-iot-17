@@ -102,6 +102,63 @@ export default function App() {
     return () => clearInterval(interval);
   }, [state.variasi2]);
 
+  const [sliderTemp, setSliderTemp] = useState<number>(27.5);
+  const [sliderHum, setSliderHum] = useState<number>(62.0);
+  const [isDhtReading, setIsDhtReading] = useState<boolean>(false);
+  const [dhtLogs, setDhtLogs] = useState<Array<{ time: string; temp: number; hum: number; status: string }>>([]);
+
+  // Simulasi pembacaan data sensor DHT11 berkala secara real-time (setiap 4 detik)
+  useEffect(() => {
+    let active = true;
+    const intervalId = setInterval(() => {
+      if (!state.wifiConnected) return;
+
+      // Nyalakan indikator active reading (pulse/flash di UI)
+      setIsDhtReading(true);
+
+      setTimeout(() => {
+        if (!active) return;
+        setIsDhtReading(false);
+
+        // Hitung nilai fluktuasi alami di sekitar target slider (drift sine wave + micro-noise)
+        const timeAccent = Date.now() / 6000;
+        const driftT = Math.sin(timeAccent) * 0.2 + (Math.random() * 0.08 - 0.04);
+        const driftH = Math.cos(timeAccent) * 0.4 + (Math.random() * 0.16 - 0.08);
+
+        const currentT = parseFloat((sliderTemp + driftT).toFixed(1));
+        const currentH = parseFloat((sliderHum + driftH).toFixed(1));
+
+        const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Update state
+        setState(prev => ({
+          ...prev,
+          temperature: currentT,
+          humidity: currentH
+        }));
+
+        // Log reading event ke stream logger
+        setDhtLogs(prevLogs => {
+          const nextLogs = [
+            ...prevLogs,
+            {
+              time: timeStr,
+              temp: currentT,
+              hum: currentH,
+              status: `Sukses membaca data sensor GPIO4: Suhu ${currentT}°C | Lembab ${currentH}%`
+            }
+          ];
+          return nextLogs.slice(-15); // limit ke 15 baris logs paling baru
+        });
+      }, 600); // Durasi pulse visual bacaan sensor selama 600ms
+    }, 4000);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [state.wifiConnected, sliderTemp, sliderHum]);
+
   // Toast notification system helper
   const triggerToast = (msg: string) => {
     setShowNotification({ show: true, message: msg });
@@ -112,6 +169,12 @@ export default function App() {
 
   // State Mutator helper for hardware
   const handleUpdateState = (newState: Partial<IoTState>) => {
+    if (newState.temperature !== undefined) {
+      setSliderTemp(newState.temperature);
+    }
+    if (newState.humidity !== undefined) {
+      setSliderHum(newState.humidity);
+    }
     setState(prev => ({ ...prev, ...newState }));
   };
 
@@ -490,6 +553,9 @@ export default function App() {
   };
 
   const handleResetBoard = () => {
+    setSliderTemp(28.0);
+    setSliderHum(60.0);
+    setDhtLogs([]);
     setState(prev => ({
       ...prev,
       temperature: 28.0,
@@ -566,6 +632,7 @@ export default function App() {
               <HardwareSimulator 
                 state={state} 
                 onToggleRelay={handleToggleRelayFromHardware} 
+                isDhtReading={isDhtReading}
               />
             </div>
 
@@ -577,6 +644,8 @@ export default function App() {
                 onSetAllRelays={handleSetAllRelays}
                 onToggleVariasi={handleToggleVariasiFromWeb}
                 onRefresh={() => triggerToast('Sinkronisasi web dashboard diperbarui.')}
+                isDhtReading={isDhtReading}
+                dhtLogs={dhtLogs}
               />
             </div>
           </div>
@@ -596,6 +665,10 @@ export default function App() {
               state={state}
               onStateChange={handleUpdateState}
               onReset={handleResetBoard}
+              sliderTemp={sliderTemp}
+              sliderHum={sliderHum}
+              setSliderTemp={setSliderTemp}
+              setSliderHum={setSliderHum}
             />
           </div>
 
