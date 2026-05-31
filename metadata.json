@@ -1,0 +1,6 @@
+{
+  "name": "IoT Smart Home Chat & Dashboard",
+  "description": "Interactive IoT Simulator for ESP32/ESP8266, 4-Channel Relay, DHT11/22, Telegram Bot interface, and local Web Dashboard based on Arduino C++ code.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
