@@ -105,7 +105,20 @@ export default function App() {
   const [sliderTemp, setSliderTemp] = useState<number>(27.5);
   const [sliderHum, setSliderHum] = useState<number>(62.0);
   const [isDhtReading, setIsDhtReading] = useState<boolean>(false);
-  const [dhtLogs, setDhtLogs] = useState<Array<{ time: string; temp: number; hum: number; status: string }>>([]);
+  const [dhtLogs, setDhtLogs] = useState<Array<{ time: string; temp: number; hum: number; status: string }>>([
+    {
+      time: new Date(Date.now() - 4000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      temp: 27.5,
+      hum: 62.0,
+      status: '🔌 SISTEM INTI: ESP32 Berhasil Booting & WiFi Terhubung (IP: 192.168.1.135)'
+    },
+    {
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      temp: 27.5,
+      hum: 62.0,
+      status: '🌡️ SENSOR INIT: Mengaktifkan DHT11 pada GPIO4 data bus... Sukses membaca data!'
+    }
+  ]);
 
   // Simulasi pembacaan data sensor DHT11 berkala secara real-time (setiap 4 detik)
   useEffect(() => {
@@ -189,30 +202,40 @@ export default function App() {
       return;
     }
 
-    // Deactivate variasi if changing corresponding relays
-    let isVariasiAffect = false;
-    let newVariasiState = {};
-    if (relayNum === 1 || relayNum === 2) {
-      if (state.variasi1) {
-        newVariasiState = { variasi1: false };
-        isVariasiAffect = true;
-      }
-    }
-    if (relayNum === 3 || relayNum === 4) {
-      if (state.variasi2) {
-        newVariasiState = { variasi2: false };
-        isVariasiAffect = true;
-      }
-    }
-
     setState(prev => {
       const field = `relay${relayNum}` as keyof IoTState;
       const targetState = !prev[field];
       
+      const newVariasiState: Partial<IoTState> = {};
+      if (relayNum === 1 || relayNum === 2) {
+        if (prev.variasi1) {
+          newVariasiState.variasi1 = false;
+        }
+      }
+      if (relayNum === 3 || relayNum === 4) {
+        if (prev.variasi2) {
+          newVariasiState.variasi2 = false;
+        }
+      }
+
       // Send bot telegram notification exactly matches C++ "sendRelayNotification"
       const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const botMsg = `💡 *Lampu ${relayNum}*\nStatus: ${targetState ? "🟢 MENYALA" : "🔴 MATI"}\nWaktu: ${timeStr}`;
       
+      // Log event ke stream logger
+      setDhtLogs(prevLogs => {
+        const nextLogs = [
+          ...prevLogs,
+          {
+            time: timeStr,
+            temp: prev.temperature,
+            hum: prev.humidity,
+            status: `⚙️ RELAI GPIO${relayNum === 1 ? '25' : relayNum === 2 ? '26' : relayNum === 3 ? '27' : '14'}: Lampu ${relayNum} ditoggle menjadi ${targetState ? 'ON (LOW)' : 'OFF (HIGH)'} via Tombol Hardware`
+          }
+        ];
+        return nextLogs.slice(-15);
+      });
+
       // Delay appending notification message slightly
       setTimeout(() => {
         setMessages(prevMsgs => [
@@ -243,22 +266,36 @@ export default function App() {
       return;
     }
 
-    let resetVariasi = {};
-    if ((relayNum === 1 || relayNum === 2) && state.variasi1) {
-      resetVariasi = { variasi1: false };
-    }
-    if ((relayNum === 3 || relayNum === 4) && state.variasi2) {
-      resetVariasi = { variasi2: false };
-    }
-
     setState(prev => {
       const field = `relay${relayNum}` as keyof IoTState;
       
-      // Trigger Bot Notification if state changes
+      const resetVariasi: Partial<IoTState> = {};
+      if ((relayNum === 1 || relayNum === 2) && prev.variasi1) {
+        resetVariasi.variasi1 = false;
+      }
+      if ((relayNum === 3 || relayNum === 4) && prev.variasi2) {
+        resetVariasi.variasi2 = false;
+      }
+
+      const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      // Trigger Bot Notification and stream log if state changes
       if (prev[field] !== targetState) {
-        const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const botMsg = `💡 *Lampu ${relayNum}*\nStatus: ${targetState ? "🟢 MENYALA" : "🔴 MATI"}\nWaktu: ${timeStr}`;
         
+        setDhtLogs(prevLogs => {
+          const nextLogs = [
+            ...prevLogs,
+            {
+              time: timeStr,
+              temp: prev.temperature,
+              hum: prev.humidity,
+              status: `⚙️ RELAI GPIO${relayNum === 1 ? '25' : relayNum === 2 ? '26' : relayNum === 3 ? '27' : '14'}: Lampu ${relayNum} diset menjadi ${targetState ? 'ON (LOW)' : 'OFF (HIGH)'} via Dashboard`
+            }
+          ];
+          return nextLogs.slice(-15);
+        });
+
         setTimeout(() => {
           setMessages(prevMsgs => [
             ...prevMsgs,
@@ -646,6 +683,7 @@ export default function App() {
                 onRefresh={() => triggerToast('Sinkronisasi web dashboard diperbarui.')}
                 isDhtReading={isDhtReading}
                 dhtLogs={dhtLogs}
+                onToggleWifi={() => handleUpdateState({ wifiConnected: !state.wifiConnected })}
               />
             </div>
           </div>

@@ -10,6 +10,7 @@ interface WebDashboardSimProps {
   onRefresh: () => void;
   isDhtReading?: boolean;
   dhtLogs?: Array<{ time: string; temp: number; hum: number; status: string }>;
+  onToggleWifi?: () => void;
 }
 
 export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
@@ -20,6 +21,7 @@ export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
   onRefresh,
   isDhtReading,
   dhtLogs,
+  onToggleWifi,
 }) => {
   return (
     <div className="bg-white border-2 border-slate-900 rounded-none flex flex-col h-full overflow-hidden shadow-[6px_6px_0px_rgba(15,23,42,1)] relative" id="web-dashboard-simulator">
@@ -66,6 +68,31 @@ export const WebDashboardSim: React.FC<WebDashboardSimProps> = ({
             {state.lastUpdateTime === '--:--:--' ? 'Memuat data...' : `Last Sync: ${state.lastUpdateTime}`}
           </p>
         </div>
+
+        {/* Offline Alert Notice */}
+        {!state.wifiConnected && (
+          <div className="bg-rose-50 border-2 border-rose-900 text-rose-950 p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[4px_4px_0px_rgba(244,63,94,0.15)] rounded-none">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl mt-0.5 shrink-0">⚠️</span>
+              <div>
+                <span className="block text-xs font-black uppercase text-rose-950 font-sans tracking-wide">
+                  ESP32 Sedang Offline (WiFi Terputus)
+                </span>
+                <span className="block text-[11px] text-slate-600 font-mono leading-relaxed mt-1">
+                  Kontrol lampu (relay) dan pembacaan sensor dinonaktifkan sementara karena mikrokontroler tidak terhubung ke jaringan internet.
+                </span>
+              </div>
+            </div>
+            {onToggleWifi && (
+              <button
+                onClick={onToggleWifi}
+                className="text-[10px] sm:text-xs uppercase font-black tracking-wide bg-amber-400 text-slate-900 border-2 border-slate-900 px-3.5 py-1.5 hover:bg-amber-300 shadow-[3px_3px_0px_rgba(15,23,42,1)] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer shrink-0"
+              >
+                🌐 Hubungkan Kembali
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Sensor Section */}
         <div>
